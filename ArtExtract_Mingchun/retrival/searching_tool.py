@@ -1,4 +1,3 @@
-# faiss_tools.py
 import os
 import math
 import faiss

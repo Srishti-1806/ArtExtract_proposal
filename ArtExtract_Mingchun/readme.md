@@ -7,7 +7,8 @@ The ArtExtract project aims to develop an artificial intelligence model for dete
 
 ### 2. Model Structure
 
-#### A. Based-GCN Siamese Network Architecture
+### Extract Model
+##### A. Based-GCN Siamese Network Architecture
 ![Based-GCN Siamese Network](./img/GCN.png)
 **Graph Convolutional Networks (GCN)** are designed to directly process irregular, non-grid data such as 3D meshes and social networks. They leverage external knowledge transfer to reduce dependence on training samples and improve computational efficiency (Gao, Zhang et al. 2019; Qi, Yang et al. 2020; Yang and Lee 2020).
 
@@ -15,14 +16,19 @@ Our model adopts a classic Siamese architecture with a backbone composed of stac
 
 During training, an unsupervised contrastive loss encourages embeddings of similar image pairs (e.g., original painting and multispectral version) to be close while pushing dissimilar pairs apart, enhancing the model’s discriminative power.
 
-#### B. Based-GAT Siamese Network Architecture
+##### B. Based-GAT Siamese Network Architecture
 ![Based-GAT Siamese Network](./img/GAT.png)
 **Graph Attention Networks (GAT)** were introduced to overcome limitations of GCN by assigning adaptive weights to neighboring nodes via an attention mechanism. Unlike GCN which treat neighbors uniformly, GAT learns the relative importance of each neighbor during training. Moreover, GATs do not require full knowledge of the graph structure beforehand, enabling effective inductive learning on unseen graphs (Veličković, Cucurull et al. 2017).
 
 Our **Based-GAT Siamese Network** maintains the same overall architecture as the Based-GCN, replacing only the backbone with a three-layer GAT. Experiments showed that GAT outperforms GCN with the same depth and similar parameters, leading us to focus on fine-tuning GAT’s hyperparameters, which differ slightly from those of GCN.
 
-#### C. Loss Function : Unsupervised Contrastive Loss
+##### C. Loss Function : Unsupervised Contrastive Loss
 During training, an unsupervised contrastive loss encourages the model to learn embeddings that maintain similarity between related image pairs (e.g., original painting and multispectral version) by pulling them closer in the embedding space while pushing unrelated pairs apart. This loss function enhances the model’s ability to preserve subtle structural relationships and improve discrimination between similar and dissimilar inputs.
+
+### Embedding Model
+#### Based-GAT Siamese Encoder
+
+We adopt a shared-weight Siamese encoder with a three-layer Graph Attention Network (GAT) backbone to learn embeddings from graphified images. Each branch stacks three GATConv layers with multi-head attention, followed by LayerNorm, LeakyReLU, and dropout. Node features are aggregated by global mean and max pooling, concatenated, and passed through a two-layer MLP projection head to produce the final embedding. Outputs are L2-normalized, making inner product equivalent to cosine similarity, which we use for retrieval. Embeddings are saved as .npy files for downstream FAISS search.
 
 ### 3. Dataset
 **The dataset used in this project is entirely derived from the previous year’s established results.**
@@ -81,7 +87,39 @@ To visualize these insights, the attention-derived importance scores are mapped 
 
 Such interpretable visualizations serve multiple purposes: they validate and explain model decisions, expose potential shortcomings or biases, and provide invaluable tools for art historians and conservators. By uncovering hidden layers and features through multispectral imaging combined with graph-based analysis, these visualizations support restoration, authentication, and scholarly research.
 
-### 5. Implementation guidance
+####  Similarity Retrival
+![Similarity Retrival](./img/Similarity_Retrival.png)
+In our similarity retrieval pipeline, we employ **the Graph Attention Siamese Network (Based-GAT)**, which has been validated for effective graph embedding extraction. The workflow is structured as follows:
+
+**Extract & Store Embeddings**
+
+- Each image is converted into a superpixel graph and encoded into a fixed-dimensional embedding vector.
+
+- Embeddings are saved as **embeddings.npy (float32 matrix)**, with corresponding identifiers in **ids.csv**.
+
+**Build Index**
+
+- Load stored embeddings and construct FAISS indices (Flat, IVF+PQ, HNSW) depending on the trade-off between speed, memory, and accuracy.
+
+**Search**
+
+- Input a query embedding and retrieve the Top-K nearest neighbors from the index.
+
+**Re-ranking (Optional)**
+
+- Refine candidate results using cosine similarity for higher precision.
+
+**Evaluation**
+
+- Use Recall@K and nprobe sweep to evaluate trade-offs between retrieval accuracy and query latency.
+
+**Visualization**
+
+-  Example of similarity retrieval using a Flat-IP index. The query image is shown on the left, while the Top-6 retrieved candidates are displayed on the right in descending order of similarity.
+
+### 5. Implementation Guidance
+
+#### Hidden Painting Extraction Guidance
 
 This project is organized into several key directories and scripts to facilitate modular development and easy navigation:
 
@@ -96,6 +134,17 @@ Additional standalone scripts include:
 - train.py — The training pipeline for model optimization.
 
 - inference.py — Scripts for running inference on test data.
+
+#### Similarity Retrival Guidance
+This project provides a modular pipeline for performing similarity retrieval on painting images. The relevant directories and scripts are organized as follows:
+
+- retrival/ — Tools dedicated to similarity search and visualization.
+
+  - searching_tool.py — FAISS-based retrieval tool supporting embedding I/O, index building, Top-K search, re-ranking, and evaluation.
+  - viz_tool.py — Visualization utilities for displaying query results and retrieval outputs.
+- embedding.py — Extract embeddings from images using the Based-GAT Siamese encoder and save them to disk (embeddings.npy, ids.csv).
+
+- searching.ipynb — Interactive Jupyter notebook for experimenting with FAISS indices, running retrieval queries, and visualizing results.
 
 ### 6. Citations
 ```

@@ -243,4 +243,3 @@ def visualize_by_index(
         id_to_path=id_to_path,
         title=title,
     )
-

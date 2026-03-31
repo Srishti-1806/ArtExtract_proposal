@@ -1,0 +1,9 @@
+model/*.pyc
+model/.ipynb_checkpoints/*
+model/__pycache__/*
+unets/*.pyc
+unets/.ipynb_checkpoints/*
+unets/__pycache__/*
+utils/*.pyc
+utils/.ipynb_checkpoints/*
+utils/__pycache__/*
